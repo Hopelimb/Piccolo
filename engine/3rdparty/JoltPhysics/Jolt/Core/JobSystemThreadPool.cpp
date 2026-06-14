@@ -9,7 +9,11 @@
 
 JPH_SUPPRESS_WARNINGS_STD_BEGIN
 #include <algorithm>
+#include <chrono>
+using namespace std::chrono_literals;
+
 JPH_SUPPRESS_WARNINGS_STD_END
+
 
 #ifdef JPH_PLATFORM_WINDOWS
 	JPH_SUPPRESS_WARNING_PUSH
