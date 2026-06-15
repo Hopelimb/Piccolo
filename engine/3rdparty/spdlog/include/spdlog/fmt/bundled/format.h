@@ -336,7 +336,11 @@ inline auto get_data(Container& c) -> typename Container::value_type* {
   return c.data();
 }
 
-#if defined(_SECURE_SCL) && _SECURE_SCL
+// NOTE: stdext::checked_array_iterator was removed from the VS 2026 MSVC STL,
+// so the legacy _SECURE_SCL branch no longer compiles. It only suppressed MSVC
+// iterator warnings; plain pointers are functionally identical. Force the plain
+// pointer path for both Debug (_SECURE_SCL/_ITERATOR_DEBUG_LEVEL != 0) and Release.
+#if 0
 // Make a checked iterator to avoid MSVC warnings.
 template <typename T> using checked_ptr = stdext::checked_array_iterator<T*>;
 template <typename T> auto make_checked(T* p, size_t size) -> checked_ptr<T> {
