@@ -53,12 +53,30 @@ sudo apt install mesa-vulkan-drivers
 ## Build Piccolo
 
 ### Build on Windows
-You may execute the **build_windows.bat**. This batch file will generate the projects, and build the **Release** config of **Piccolo Engine** automatically. After successful build, you can find the PiccoloEditor.exe at the **bin** directory.
+Visual Studio 2026 builds are available for both x64 and ARM64. On a Windows
+ARM64 machine, the x64 binary runs through Windows emulation.
 
-Or you can use the following command to generate the **Visual Studio** project firstly, then open the solution in the build directory and build it manually.
+```bat
+build_windows.bat x64 Release
+build_windows.bat arm64 Release
 ```
-cmake -S . -B build
+
+The first argument defaults to `x64` and the second defaults to `Release`.
+After a successful build, `PiccoloEditor.exe` is written to the `bin`
+directory.
+
+To generate projects for Visual Studio without building them:
+
+```bat
+cmake --preset vs2026-x64
+cmake --preset vs2026-arm64
 ```
+
+Open `build_vs_x64\Piccolo.slnx` for x64 or `build_vs\Piccolo.slnx` for
+ARM64. CMake fixes the target architecture when it generates a Visual Studio
+project, so do not reuse one build directory for both architectures. The ARM64
+configuration requires the Visual Studio ARM64 LLVM/Clang component and a
+Windows on ARM Vulkan SDK.
 
 ### Build on macOS
 

@@ -7,6 +7,17 @@
   },
   "configurePresets": [
     {
+      "name": "vs2026-x64",
+      "displayName": "Visual Studio 2026 x64 (MSVC, ARM64 emulation compatible)",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "toolset": "v145",
+      "binaryDir": "${sourceDir}/build_vs_x64",
+      "cacheVariables": {
+        "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+      }
+    },
+    {
       "name": "vs2026-arm64",
       "displayName": "Visual Studio 2026 ARM64 (ClangCL)",
       "generator": "Visual Studio 18 2026",
@@ -19,6 +30,16 @@
     }
   ],
   "buildPresets": [
+    {
+      "name": "vs2026-x64-debug",
+      "configurePreset": "vs2026-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "vs2026-x64-release",
+      "configurePreset": "vs2026-x64",
+      "configuration": "Release"
+    },
     {
       "name": "vs2026-arm64-debug",
       "configurePreset": "vs2026-arm64",

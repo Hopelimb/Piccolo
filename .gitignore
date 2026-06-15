@@ -1,4 +1,6 @@
 build/
+/build_vs/
+/build_vs_x64/
 cpm_modules/
 CPM_modules/
 CPM_*.cmake
