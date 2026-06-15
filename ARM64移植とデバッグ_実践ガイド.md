@@ -133,10 +133,10 @@ fatal error C1083: Cannot open precompiled header file: 'Jolt/Jolt.pch'
 
 **学べること**: 「MSBuildでは動くがNinjaでは壊れる」典型。ジェネレータごとのビルド実行モデル（直列 vs 並列、依存グラフの明示性）の違いを疑う。
 
-### 2.3 新しいMSVCで Jolt が出す他のエラー
+### 2.3 新しいコンパイラで Jolt が出す他のエラー
 
-- `/WX`（警告をエラー化）で、新MSVCが `UVec4.h` に出す**新しい警告**が致命傷に → `/WX` を外す。
-- `JobSystemThreadPool.cpp` の `100us`（chronoリテラル）が未解決 → `#include <chrono>` と `using namespace std::chrono_literals;` を追加。
+- `/WX`（警告をエラー化）で、clang-cl 22が古いJoltに出す**新しい警告**が致命傷に → ARM64時だけ `/WX` を外す。
+- `JobSystemThreadPool.cpp` の `100us`（chronoリテラル）が未解決 → `#include <chrono>` を追加し、`chrono::microseconds(100)` と明示する。
 
 **学べること**: コンパイラ/STLが新しくなると、(a)新警告が増える、(b)以前は暗黙に通っていた省略（using/include漏れ）が露呈する。古いコードを新ツールチェーンに載せる時の定番。
 
@@ -224,7 +224,7 @@ use of undeclared identifier 'stdext'   (fmt の make_checked / checked_ptr)
 ```
 ReleaseのCLIビルドは通り、VS GUIのDebugだけ落ちた。
 → **差分に注目**: Release vs Debug。同梱fmtの該当箇所は `#if defined(_SECURE_SCL) && _SECURE_SCL`。**Debugでは `_SECURE_SCL`/`_ITERATOR_DEBUG_LEVEL` が非0**になり、`stdext::checked_array_iterator` を使う枝に入る。だが**VS 2026の新MSVC STLはこの型を削除済み**。
-→ **対処**: その枝を無効化し、通常ポインタ経路に固定（チェック済みイテレータは警告抑制用で機能は同じ）。
+→ **対処**: ARM64 + clang-cl時は `spdlog` ターゲットへ `_SECURE_SCL=0` を `PUBLIC` 指定し、通常ポインタ経路に固定する。`PUBLIC` が重要で、`spdlog` 本体だけでなくヘッダを利用する `PiccoloRuntime` / `PiccoloEditor` にも定義を伝播させる（チェック済みイテレータは警告抑制用で機能は同じ）。
 
 **学べること**: 「ある構成だけ落ちる」→ その構成で変わるマクロ（`_DEBUG`/`NDEBUG`/`_ITERATOR_DEBUG_LEVEL`/`_SECURE_SCL`）を疑う。新STLは古い拡張を削除していることがある。
 
@@ -294,6 +294,12 @@ Select-String build_vs\engine\3rdparty\JoltPhysics\Build\Jolt.vcxproj `
 `CMAKE_GENERATOR_PLATFORM=ARM64`、`CMAKE_GENERATOR_TOOLSET=ClangCL`、
 `Jolt.vcxproj`の`PlatformToolset=ClangCL`を確認しました。Release全体のビルドに成功し、
 生成されたARM64版Editorでリサイズ、最大化、復元のスモークテストも完走しました。
+
+同日のクリーンツリー再検証では、`cmake --fresh --preset vs2026-arm64` から
+Debug/Releaseを順番にフルビルドしました。生成されたVSプロジェクトが
+ARM64版Vulkan SDK、VS付属ARM64 `libclang`、x86 SIMDフラグを含まないJolt設定を
+参照することを確認し、`PiccoloEditor.exe` / `PiccoloParser.exe` / `libclang.dll` の
+PE機械種別がすべて `IMAGE_FILE_MACHINE_ARM64 (0xAA64)` であることも確認しました。
 
 ---
 
@@ -585,7 +591,7 @@ cmake-gui --preset=vs2026-arm64
 | Jolt PCH/SIMD/警告/リンカ対応 | `engine/3rdparty/JoltPhysics/Jolt/Jolt.cmake`, `engine/3rdparty/JoltPhysics/Build/CMakeLists.txt` |
 | chronoリテラル | `engine/3rdparty/JoltPhysics/Jolt/Core/JobSystemThreadPool.cpp` |
 | CMake 4.x互換 | `engine/3rdparty/glfw/CMakeLists.txt`, `engine/3rdparty/tinyobjloader/CMakeLists.txt` |
-| 新MSVC STL互換 | `engine/3rdparty/spdlog/include/spdlog/fmt/bundled/format.h` |
+| 新MSVC STL互換 | `engine/3rdparty/CMakeLists.txt` |
 | ビューポート更新 + 明示的リサイズ検知 + 再生成通知 | `engine/source/runtime/function/render/interface/rhi.h`, `engine/source/runtime/function/render/interface/vulkan/vulkan_rhi.h`, `engine/source/runtime/function/render/interface/vulkan/vulkan_rhi.cpp` |
 | 再生成フレームの粒子処理中止 | `engine/source/runtime/function/render/render_pipeline.cpp` |
 | パーティクルバッファ初期化 + 深度/法線コピーのレイアウト修正 | `engine/source/runtime/function/render/passes/particle_pass.cpp` |
