@@ -182,6 +182,7 @@ namespace Piccolo
             uvec4 emit_argument;
             uvec4 simulate_argument;
             int   alive_flap_bit;
+            int   emit_tick;
         };
 
         struct ParticleCounter

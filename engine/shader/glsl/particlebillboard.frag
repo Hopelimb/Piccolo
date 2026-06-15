@@ -12,7 +12,9 @@ layout(set = 0, binding = 2) uniform sampler2D sparktexture;
 
 layout(location = 0) out highp vec4 out_scene_color;
 
-void main() { 
-    out_scene_color.xyz = 4.0f * texture(sparktexture, in_uv).r * in_color.xyz;
-    out_scene_color.w = texture(sparktexture, in_uv).r;
+void main()
+{
+    highp float opacity = clamp(texture(sparktexture, in_uv).r * in_color.a, 0.0f, 1.0f);
+    out_scene_color.xyz = opacity * in_color.xyz;
+    out_scene_color.w   = opacity;
 }

@@ -133,7 +133,7 @@ namespace Piccolo
         RHICommandBuffer* beginSingleTimeCommands() override;
         void            endSingleTimeCommands(RHICommandBuffer* command_buffer) override;
         bool prepareBeforePass(std::function<void()> passUpdateAfterRecreateSwapchain) override;
-        void submitRendering(std::function<void()> passUpdateAfterRecreateSwapchain) override;
+        bool submitRendering(std::function<void()> passUpdateAfterRecreateSwapchain) override;
         void pushEvent(RHICommandBuffer* commond_buffer, const char* name, const float* color) override;
         void popEvent(RHICommandBuffer* commond_buffer) override;
 

@@ -42,6 +42,7 @@ struct Argument
     uvec4 emit_count;
     uvec4 simulate_count;
     int   alive_flap_bit;
+    int   emit_tick;
 };
 
 layout(std140, binding = 3) buffer ArgumentBuffer { Argument argument; };
@@ -49,7 +50,14 @@ layout(std140, binding = 3) buffer ArgumentBuffer { Argument argument; };
 layout(local_size_x = 1) in;
 void main()
 {
-    int emitCount = min(counter.dead_count, ubo.xemit_count);
+    argument.emit_tick += 1;
+
+    int emitCount = 0;
+    if (float(argument.emit_tick) > ubo.emit_delta)
+    {
+        argument.emit_tick = 1;
+        emitCount = min(counter.dead_count, ubo.xemit_count);
+    }
 
     // indirect argument for emit
     argument.emit_count.xyz = uvec3(ceil(float(emitCount) / float(256)), 1, 1);

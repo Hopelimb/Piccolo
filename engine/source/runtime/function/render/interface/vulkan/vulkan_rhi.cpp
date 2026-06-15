@@ -366,6 +366,18 @@ namespace Piccolo
 
     bool VulkanRHI::prepareBeforePass(std::function<void()> passUpdateAfterRecreateSwapchain)
     {
+        int framebuffer_width  = 0;
+        int framebuffer_height = 0;
+        glfwGetFramebufferSize(m_window, &framebuffer_width, &framebuffer_height);
+        if (framebuffer_width > 0 && framebuffer_height > 0 &&
+            (static_cast<uint32_t>(framebuffer_width) != m_swapchain_extent.width ||
+             static_cast<uint32_t>(framebuffer_height) != m_swapchain_extent.height))
+        {
+            recreateSwapchain();
+            passUpdateAfterRecreateSwapchain();
+            return RHI_SUCCESS;
+        }
+
         VkResult acquire_image_result =
             vkAcquireNextImageKHR(m_device,
                                   m_swapchain,
@@ -440,14 +452,14 @@ namespace Piccolo
         return false;
     }
 
-    void VulkanRHI::submitRendering(std::function<void()> passUpdateAfterRecreateSwapchain)
+    bool VulkanRHI::submitRendering(std::function<void()> passUpdateAfterRecreateSwapchain)
     {
         // end command buffer
         VkResult res_end_command_buffer = _vkEndCommandBuffer(m_vk_command_buffers[m_current_frame_index]);
         if (VK_SUCCESS != res_end_command_buffer)
         {
             LOG_ERROR("_vkEndCommandBuffer failed!");
-            return;
+            return true;
         }
 
         VkSemaphore semaphores[2] = { ((VulkanSemaphore*)m_image_available_for_texturescopy_semaphores[m_current_frame_index])->getResource(),
@@ -470,7 +482,7 @@ namespace Piccolo
         if (VK_SUCCESS != res_reset_fences)
         {
             LOG_ERROR("_vkResetFences failed!");
-            return;
+            return true;
         }
         VkResult res_queue_submit =
             vkQueueSubmit(((VulkanQueue*)m_graphics_queue)->getResource(), 1, &submit_info, m_is_frame_in_flight_fences[m_current_frame_index]);
@@ -478,7 +490,7 @@ namespace Piccolo
         if (VK_SUCCESS != res_queue_submit)
         {
             LOG_ERROR("vkQueueSubmit failed!");
-            return;
+            return true;
         }
 
         // present swapchain
@@ -495,17 +507,20 @@ namespace Piccolo
         {
             recreateSwapchain();
             passUpdateAfterRecreateSwapchain();
+            m_current_frame_index = (m_current_frame_index + 1) % k_max_frames_in_flight;
+            return true;
         }
         else
         {
             if (VK_SUCCESS != present_result)
             {
                 LOG_ERROR("vkQueuePresentKHR failed!");
-                return;
+                return true;
             }
         }
 
         m_current_frame_index = (m_current_frame_index + 1) % k_max_frames_in_flight;
+        return false;
     }
 
     RHICommandBuffer* VulkanRHI::beginSingleTimeCommands()
@@ -759,6 +774,14 @@ namespace Piccolo
     void VulkanRHI::createLogicalDevice()
     {
         m_queue_indices = findQueueFamilies(m_physical_device);
+
+        VkPhysicalDeviceProperties physical_device_properties {};
+        vkGetPhysicalDeviceProperties(m_physical_device, &physical_device_properties);
+        LOG_INFO("Vulkan device: {}", physical_device_properties.deviceName);
+        LOG_INFO("Vulkan queue families: graphics={}, present={}, compute={}",
+                 m_queue_indices.graphics_family.value(),
+                 m_queue_indices.present_family.value(),
+                 m_queue_indices.m_compute_family.value());
 
         std::vector<VkDeviceQueueCreateInfo> queue_create_infos; // all queues that need to be created
         std::set<uint32_t>                   queue_families = {m_queue_indices.graphics_family.value(),
@@ -3110,7 +3133,13 @@ namespace Piccolo
         m_swapchain_extent.height = chosen_extent.height;
         m_swapchain_extent.width = chosen_extent.width;
 
-        m_scissor = {{0, 0}, {m_swapchain_extent.width, m_swapchain_extent.height}};
+        m_viewport = {0.0f,
+                      0.0f,
+                      static_cast<float>(m_swapchain_extent.width),
+                      static_cast<float>(m_swapchain_extent.height),
+                      0.0f,
+                      1.0f};
+        m_scissor  = {{0, 0}, {m_swapchain_extent.width, m_swapchain_extent.height}};
     }
 
     void VulkanRHI::clearSwapchain()

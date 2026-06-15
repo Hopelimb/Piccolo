@@ -28,6 +28,7 @@ struct Argument
     uvec4 emit_count;
     uvec4 simulateCount;
     int   alive_flap_bit;
+    int   emit_tick;
 };
 
 layout(binding = 0) uniform UBO

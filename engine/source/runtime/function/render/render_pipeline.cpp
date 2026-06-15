@@ -158,7 +158,12 @@ namespace Piccolo
         
         g_runtime_global_context.m_debugdraw_manager->draw(vulkan_rhi->m_current_swapchain_image_index);
 
-        vulkan_rhi->submitRendering(std::bind(&RenderPipeline::passUpdateAfterRecreateSwapchain, this));
+        bool recreate_swapchain_after_present =
+            vulkan_rhi->submitRendering(std::bind(&RenderPipeline::passUpdateAfterRecreateSwapchain, this));
+        if (recreate_swapchain_after_present)
+        {
+            return;
+        }
         static_cast<ParticlePass*>(m_particle_pass.get())->copyNormalAndDepthImage();
         static_cast<ParticlePass*>(m_particle_pass.get())->simulate();
     }
@@ -207,7 +212,12 @@ namespace Piccolo
                    
         g_runtime_global_context.m_debugdraw_manager->draw(vulkan_rhi->m_current_swapchain_image_index);
 
-        vulkan_rhi->submitRendering(std::bind(&RenderPipeline::passUpdateAfterRecreateSwapchain, this));
+        bool recreate_swapchain_after_present =
+            vulkan_rhi->submitRendering(std::bind(&RenderPipeline::passUpdateAfterRecreateSwapchain, this));
+        if (recreate_swapchain_after_present)
+        {
+            return;
+        }
         static_cast<ParticlePass*>(m_particle_pass.get())->copyNormalAndDepthImage();
         static_cast<ParticlePass*>(m_particle_pass.get())->simulate();
     }

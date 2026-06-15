@@ -139,7 +139,7 @@ namespace Piccolo
         virtual RHICommandBuffer* beginSingleTimeCommands() = 0;
         virtual void            endSingleTimeCommands(RHICommandBuffer* command_buffer) = 0;
         virtual bool prepareBeforePass(std::function<void()> passUpdateAfterRecreateSwapchain) = 0;
-        virtual void submitRendering(std::function<void()> passUpdateAfterRecreateSwapchain) = 0;
+        virtual bool submitRendering(std::function<void()> passUpdateAfterRecreateSwapchain) = 0;
         virtual void pushEvent(RHICommandBuffer* commond_buffer, const char* name, const float* color) = 0;
         virtual void popEvent(RHICommandBuffer* commond_buffer) = 0;
 

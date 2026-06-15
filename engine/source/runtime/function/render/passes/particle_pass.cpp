@@ -8,6 +8,7 @@
 #include "runtime/function/render/render_system.h"
 
 #include "core/base/macro.h"
+#include <cstring>
 #include <fstream>
 
 #include "particle_emit_comp.h"
@@ -86,7 +87,7 @@ namespace Piccolo
                                       1,
                                       &imagememorybarrier);
 
-            imagememorybarrier.oldLayout     = RHI_IMAGE_LAYOUT_UNDEFINED;
+            imagememorybarrier.oldLayout     = RHI_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             imagememorybarrier.newLayout     = RHI_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             imagememorybarrier.srcAccessMask = RHI_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
             imagememorybarrier.dstAccessMask = RHI_ACCESS_TRANSFER_READ_BIT;
@@ -113,9 +114,9 @@ namespace Piccolo
 
             imagememorybarrier.oldLayout     = RHI_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             imagememorybarrier.newLayout     = RHI_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            imagememorybarrier.srcAccessMask = RHI_ACCESS_TRANSFER_WRITE_BIT;
+            imagememorybarrier.srcAccessMask = RHI_ACCESS_TRANSFER_READ_BIT;
             imagememorybarrier.dstAccessMask =
-                RHI_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | RHI_ACCESS_SHADER_READ_BIT;
+                RHI_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | RHI_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
             m_rhi->cmdPipelineBarrier(m_copy_command_buffer,
                                       RHI_PIPELINE_STAGE_ALL_COMMANDS_BIT,
@@ -171,7 +172,7 @@ namespace Piccolo
                                       1,
                                       &imagememorybarrier);
 
-            imagememorybarrier.oldLayout     = RHI_IMAGE_LAYOUT_UNDEFINED;
+            imagememorybarrier.oldLayout     = RHI_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imagememorybarrier.newLayout     = RHI_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             imagememorybarrier.srcAccessMask = RHI_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
             imagememorybarrier.dstAccessMask = RHI_ACCESS_TRANSFER_READ_BIT;
@@ -198,8 +199,9 @@ namespace Piccolo
 
             imagememorybarrier.oldLayout     = RHI_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             imagememorybarrier.newLayout     = RHI_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imagememorybarrier.srcAccessMask = RHI_ACCESS_TRANSFER_WRITE_BIT;
-            imagememorybarrier.dstAccessMask = RHI_ACCESS_COLOR_ATTACHMENT_READ_BIT | RHI_ACCESS_SHADER_READ_BIT;
+            imagememorybarrier.srcAccessMask = RHI_ACCESS_TRANSFER_READ_BIT;
+            imagememorybarrier.dstAccessMask =
+                RHI_ACCESS_COLOR_ATTACHMENT_READ_BIT | RHI_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | RHI_ACCESS_SHADER_READ_BIT;
 
             m_rhi->cmdPipelineBarrier(m_copy_command_buffer,
                                       RHI_PIPELINE_STAGE_ALL_COMMANDS_BIT,
@@ -257,6 +259,9 @@ namespace Piccolo
 
     void ParticlePass::updateAfterFramebufferRecreate()
     {
+        m_rhi->destroyImageView(m_src_depth_image_view);
+        m_rhi->destroyImageView(m_src_normal_image_view);
+
         m_rhi->destroyImage(m_dst_depth_image);
         m_rhi->freeMemory(m_dst_depth_image_memory);
 
@@ -310,6 +315,11 @@ namespace Piccolo
     {
         for (int i = 0; i < m_emitter_count; ++i)
         {
+            if (m_emitter_buffer_batches[i].m_num_particle == 0)
+            {
+                continue;
+            }
+
             float color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
             m_rhi->pushEvent(m_render_command_buffer, "ParticleBillboard", color);
 
@@ -686,6 +696,7 @@ namespace Piccolo
             // Flush writes to host visible buffer
             void* mapped;
             m_rhi->mapMemory(m_emitter_buffer_batches[id].m_position_host_memory, 0, RHI_WHOLE_SIZE, 0, &mapped);
+            std::memset(mapped, 0, static_cast<size_t>(staggingBuferSize));
 
             m_rhi->flushMappedMemoryRanges(
                 nullptr, m_emitter_buffer_batches[id].m_position_host_memory, 0, RHI_WHOLE_SIZE);
@@ -731,6 +742,11 @@ namespace Piccolo
             m_rhi->cmdCopyBuffer(copyCmd,
                                  m_emitter_buffer_batches[id].m_position_host_buffer,
                                  m_emitter_buffer_batches[id].m_position_device_buffer,
+                                 1,
+                                 &copyRegion);
+            m_rhi->cmdCopyBuffer(copyCmd,
+                                 m_emitter_buffer_batches[id].m_position_host_buffer,
+                                 m_emitter_buffer_batches[id].m_position_render_buffer,
                                  1,
                                  &copyRegion);
 
